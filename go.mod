@@ -1,10 +1,10 @@
 module github.com/stratifyr/security-service-client
 
-go 1.26.6
+go 1.26.0
 
 require (
-	github.com/redis/go-redis/v9 v9.22.0
-	github.com/stratifyr/security-service-proto v0.0.0-20260816140417-8973eb71174e
+	github.com/redis/go-redis/v9 v9.21.0
+	github.com/stratifyr/security-service-proto v0.0.0-20260816145909-ddc61aa6e6ae
 	gofr.dev v1.59.0
 	google.golang.org/protobuf v1.36.12
 )
