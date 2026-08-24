@@ -10,10 +10,11 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gofr.dev/pkg/gofr"
 	"gofr.dev/pkg/gofr/config"
-	"gofr.dev/pkg/gofr/metrics"
+	"gofr.dev/pkg/gofr/logging"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	googleproto "google.golang.org/protobuf/proto"
 
-	gofrWrapper "github.com/stratifyr/security-service-proto/go/gofr-wrapper"
 	"github.com/stratifyr/security-service-proto/go/pb"
 )
 
@@ -30,20 +31,25 @@ type SecurityServiceClient interface {
 	CreateOrUpdateSecurityStat(ctx *gofr.Context, payload *pb.CreateOrUpdateSecurityStatRequest) error
 	GetMarketDataJobs(ctx *gofr.Context, status string) ([]*pb.MarketDataJob, error)
 	UpdateMarketDataJobStatus(ctx *gofr.Context, id int32, status string, logs any) error
+
+	Close() error
 }
 
 type securityServiceClient struct {
-	grpcConn gofrWrapper.SecurityServiceGoFrClient
+	grpcConn *grpc.ClientConn
+	client   pb.SecurityServiceClient
 	cache    *redis.Client
 }
 
-func NewSecurityServiceClient(config config.Config, metricsManager metrics.Manager) (SecurityServiceClient, error) {
+func NewSecurityServiceClient(config config.Config, logger logging.Logger) (SecurityServiceClient, error) {
 	securityServiceHost := config.Get("SECURITY_SERVICE_GRPC_HOST")
 	if securityServiceHost == "" {
 		return nil, errors.New("SECURITY_SERVICE_GRPC_HOST is required")
 	}
 
-	grpcConn, err := gofrWrapper.NewSecurityServiceGoFrClient(securityServiceHost, metricsManager)
+	grpcConn, err := grpc.NewClient(securityServiceHost,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(rpcLogger(logger)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create grpc connection, %s", err.Error())
 	}
@@ -55,12 +61,13 @@ func NewSecurityServiceClient(config config.Config, metricsManager metrics.Manag
 
 	return &securityServiceClient{
 		grpcConn: grpcConn,
+		client:   pb.NewSecurityServiceClient(grpcConn),
 		cache:    redisClient,
 	}, nil
 }
 
 func (c *securityServiceClient) GetMarketDays(ctx *gofr.Context, startDate, endDate time.Time) ([]time.Time, error) {
-	resp, err := c.grpcConn.GetMarketDays(ctx, &pb.GetMarketDaysRequest{
+	resp, err := c.client.GetMarketDays(ctx, &pb.GetMarketDaysRequest{
 		StartDate: startDate.Format(time.DateOnly),
 		EndDate:   endDate.Format(time.DateOnly),
 	})
@@ -91,7 +98,7 @@ func (c *securityServiceClient) GetMetrics(ctx *gofr.Context) ([]*pb.Metric, err
 
 	ctx.Logger.Warnf("client cache miss, key: %s, err: %s", MetricsCacheKey, err.Error())
 
-	resp, err := c.grpcConn.GetMetrics(ctx, &pb.GetMetricsRequest{})
+	resp, err := c.client.GetMetrics(ctx, &pb.GetMetricsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("failed rpc /security-service/GetMetrics, %s", err.Error())
 	}
@@ -120,7 +127,7 @@ func (c *securityServiceClient) GetSecurities(ctx *gofr.Context, date time.Time)
 
 	ctx.Logger.Warnf("client cache miss, key: %s, err: %s", key, err.Error())
 
-	resp, err := c.grpcConn.GetSecurities(ctx, &pb.GetSecuritiesRequest{Date: date.Format(time.DateOnly)})
+	resp, err := c.client.GetSecurities(ctx, &pb.GetSecuritiesRequest{Date: date.Format(time.DateOnly)})
 	if err != nil {
 		return nil, fmt.Errorf("failed rpc /security-service/GetSecurities, %s", err.Error())
 	}
@@ -136,7 +143,7 @@ func (c *securityServiceClient) GetSecurities(ctx *gofr.Context, date time.Time)
 }
 
 func (c *securityServiceClient) UpdateSecurityLTP(ctx *gofr.Context, id int32, ltp float64) error {
-	_, err := c.grpcConn.UpdateSecurity(ctx, &pb.UpdateSecurityRequest{Id: id, Ltp: ltp})
+	_, err := c.client.UpdateSecurity(ctx, &pb.UpdateSecurityRequest{Id: id, Ltp: ltp})
 	if err != nil {
 		return fmt.Errorf("failed rpc /security-service/UpdateSecurity, %s", err.Error())
 	}
@@ -145,8 +152,7 @@ func (c *securityServiceClient) UpdateSecurityLTP(ctx *gofr.Context, id int32, l
 }
 
 func (c *securityServiceClient) CreateOrUpdateSecurityStat(ctx *gofr.Context, payload *pb.CreateOrUpdateSecurityStatRequest) error {
-	_, err := c.grpcConn.CreateOrUpdateSecurityStat(ctx, payload)
-	if err != nil {
+	if _, err := c.client.CreateOrUpdateSecurityStat(ctx, payload); err != nil {
 		return fmt.Errorf("failed rpc /security-service/CreateOrUpdateSecurityStat, %s", err.Error())
 	}
 
@@ -154,7 +160,7 @@ func (c *securityServiceClient) CreateOrUpdateSecurityStat(ctx *gofr.Context, pa
 }
 
 func (c *securityServiceClient) GetMarketDataJobs(ctx *gofr.Context, status string) ([]*pb.MarketDataJob, error) {
-	resp, err := c.grpcConn.GetMarketDataJobs(ctx, &pb.GetMarketDataJobsRequest{Status: status})
+	resp, err := c.client.GetMarketDataJobs(ctx, &pb.GetMarketDataJobsRequest{Status: status})
 	if err != nil {
 		return nil, fmt.Errorf("failed rpc /security-service/GetMarketDataJobs, %s", err.Error())
 	}
@@ -168,10 +174,14 @@ func (c *securityServiceClient) UpdateMarketDataJobStatus(ctx *gofr.Context, id 
 		return fmt.Errorf("invalid log format, %s", err.Error())
 	}
 
-	_, err = c.grpcConn.UpdateMarketDataJob(ctx, &pb.UpdateMarketDataJobRequest{Id: id, Status: status, Logs: logBytes})
+	_, err = c.client.UpdateMarketDataJob(ctx, &pb.UpdateMarketDataJobRequest{Id: id, Status: status, Logs: logBytes})
 	if err != nil {
 		return fmt.Errorf("failed rpc /security-service/UpdateMarketDataJob, %s", err.Error())
 	}
 
 	return nil
+}
+
+func (c *securityServiceClient) Close() error {
+	return c.grpcConn.Close()
 }

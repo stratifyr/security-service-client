@@ -6,6 +6,7 @@ require (
 	github.com/redis/go-redis/v9 v9.21.0
 	github.com/stratifyr/security-service-proto v0.0.0-20260816145909-ddc61aa6e6ae
 	gofr.dev v1.59.0
+	google.golang.org/grpc v1.83.0
 	google.golang.org/protobuf v1.36.12
 )
 
@@ -98,7 +99,6 @@ require (
 	google.golang.org/genproto v0.0.0-20260519071638-aa98bba5eb94 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260630182238-925bb5da69e7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260724162435-b2f20204f0df // indirect
-	google.golang.org/grpc v1.83.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	modernc.org/libc v1.74.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
