@@ -4,7 +4,8 @@ go 1.26.0
 
 require (
 	github.com/redis/go-redis/v9 v9.21.0
-	github.com/stratifyr/security-service-proto v0.0.0-20260816145909-ddc61aa6e6ae
+	github.com/stratifyr/security-service-proto v0.0.0-20260906170255-f4dd2c6f6e01
+	go.opentelemetry.io/otel/trace v1.44.0
 	gofr.dev v1.59.0
 	google.golang.org/grpc v1.83.0
 	google.golang.org/protobuf v1.36.12
@@ -83,7 +84,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.44.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.44.0 // indirect
-	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/mock v0.6.0 // indirect

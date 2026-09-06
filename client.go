@@ -29,6 +29,8 @@ type SecurityServiceClient interface {
 	GetSecurities(ctx *gofr.Context, date time.Time) ([]*pb.Security, error)
 	UpdateSecurityLTP(ctx *gofr.Context, id int32, ltp float64) error
 	CreateOrUpdateSecurityStat(ctx *gofr.Context, payload *pb.CreateOrUpdateSecurityStatRequest) error
+	GetIndices(ctx *gofr.Context) ([]*pb.Index, error)
+	UpsertIndex(ctx *gofr.Context, name string, securityIDs []int32) error
 	GetMarketDataJobs(ctx *gofr.Context, status string) ([]*pb.MarketDataJob, error)
 	UpdateMarketDataJobStatus(ctx *gofr.Context, id int32, status string, logs any) error
 
@@ -154,6 +156,24 @@ func (c *securityServiceClient) UpdateSecurityLTP(ctx *gofr.Context, id int32, l
 func (c *securityServiceClient) CreateOrUpdateSecurityStat(ctx *gofr.Context, payload *pb.CreateOrUpdateSecurityStatRequest) error {
 	if _, err := c.client.CreateOrUpdateSecurityStat(ctx, payload); err != nil {
 		return fmt.Errorf("failed rpc /security-service/CreateOrUpdateSecurityStat, %s", err.Error())
+	}
+
+	return nil
+}
+
+func (c *securityServiceClient) GetIndices(ctx *gofr.Context) ([]*pb.Index, error) {
+	resp, err := c.client.GetIndices(ctx, &pb.GetIndicesRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("failed rpc /security-service/GetIndices, %s", err.Error())
+	}
+
+	return resp.Indices, nil
+}
+
+func (c *securityServiceClient) UpsertIndex(ctx *gofr.Context, name string, securityIDs []int32) error {
+	_, err := c.client.UpsertIndex(ctx, &pb.UpsertIndexRequest{Name: name, SecurityIds: securityIDs})
+	if err != nil {
+		return fmt.Errorf("failed rpc /security-service/UpsertIndex, %s", err.Error())
 	}
 
 	return nil
