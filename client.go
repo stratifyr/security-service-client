@@ -28,6 +28,8 @@ type SecurityServiceClient interface {
 	GetMetrics(ctx *gofr.Context) ([]*pb.Metric, error)
 	GetSecurities(ctx *gofr.Context, date time.Time) ([]*pb.Security, error)
 	UpdateSecurityLTP(ctx *gofr.Context, id int32, ltp float64) error
+	UpdateSecurityVolume(ctx *gofr.Context, id int32, volume int64) error
+	UpdateSecurityFreeFloatShares(ctx *gofr.Context, id int32, freeFloatShares int64) error
 	CreateOrUpdateSecurityStat(ctx *gofr.Context, payload *pb.CreateOrUpdateSecurityStatRequest) error
 	GetIndices(ctx *gofr.Context) ([]*pb.Index, error)
 	UpsertIndex(ctx *gofr.Context, name string, securityIDs []int32) error
@@ -146,6 +148,24 @@ func (c *securityServiceClient) GetSecurities(ctx *gofr.Context, date time.Time)
 
 func (c *securityServiceClient) UpdateSecurityLTP(ctx *gofr.Context, id int32, ltp float64) error {
 	_, err := c.client.UpdateSecurity(ctx, &pb.UpdateSecurityRequest{Id: id, Ltp: ltp})
+	if err != nil {
+		return fmt.Errorf("failed rpc /security-service/UpdateSecurity, %s", err.Error())
+	}
+
+	return nil
+}
+
+func (c *securityServiceClient) UpdateSecurityVolume(ctx *gofr.Context, id int32, volume int64) error {
+	_, err := c.client.UpdateSecurity(ctx, &pb.UpdateSecurityRequest{Id: id, Volume: volume})
+	if err != nil {
+		return fmt.Errorf("failed rpc /security-service/UpdateSecurity, %s", err.Error())
+	}
+
+	return nil
+}
+
+func (c *securityServiceClient) UpdateSecurityFreeFloatShares(ctx *gofr.Context, id int32, freeFloatShares int64) error {
+	_, err := c.client.UpdateSecurity(ctx, &pb.UpdateSecurityRequest{Id: id, FreeFloatShares: freeFloatShares})
 	if err != nil {
 		return fmt.Errorf("failed rpc /security-service/UpdateSecurity, %s", err.Error())
 	}
