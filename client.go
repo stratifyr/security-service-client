@@ -27,9 +27,7 @@ type SecurityServiceClient interface {
 	GetMarketDays(ctx *gofr.Context, startDate, endDate time.Time) ([]time.Time, error)
 	GetMetrics(ctx *gofr.Context) ([]*pb.Metric, error)
 	GetSecurities(ctx *gofr.Context, date time.Time) ([]*pb.Security, error)
-	UpdateSecurityLTP(ctx *gofr.Context, id int32, ltp float64) error
-	UpdateSecurityVolume(ctx *gofr.Context, id int32, volume int64) error
-	UpdateSecurityFreeFloatShares(ctx *gofr.Context, id int32, freeFloatShares int64) error
+	UpdateSecurity(ctx *gofr.Context, payload *pb.UpdateSecurityRequest) error
 	CreateOrUpdateSecurityStat(ctx *gofr.Context, payload *pb.CreateOrUpdateSecurityStatRequest) error
 	GetIndices(ctx *gofr.Context, date time.Time) ([]*pb.Index, error)
 	UpsertIndex(ctx *gofr.Context, payload *pb.UpsertIndexRequest) error
@@ -147,26 +145,8 @@ func (c *securityServiceClient) GetSecurities(ctx *gofr.Context, date time.Time)
 	return resp.Securities, nil
 }
 
-func (c *securityServiceClient) UpdateSecurityLTP(ctx *gofr.Context, id int32, ltp float64) error {
-	_, err := c.client.UpdateSecurity(ctx, &pb.UpdateSecurityRequest{Id: id, Ltp: ltp})
-	if err != nil {
-		return fmt.Errorf("failed rpc /security-service/UpdateSecurity, %s", err.Error())
-	}
-
-	return nil
-}
-
-func (c *securityServiceClient) UpdateSecurityVolume(ctx *gofr.Context, id int32, volume int64) error {
-	_, err := c.client.UpdateSecurity(ctx, &pb.UpdateSecurityRequest{Id: id, Volume: volume})
-	if err != nil {
-		return fmt.Errorf("failed rpc /security-service/UpdateSecurity, %s", err.Error())
-	}
-
-	return nil
-}
-
-func (c *securityServiceClient) UpdateSecurityFreeFloatShares(ctx *gofr.Context, id int32, freeFloatShares int64) error {
-	_, err := c.client.UpdateSecurity(ctx, &pb.UpdateSecurityRequest{Id: id, FreeFloatShares: freeFloatShares})
+func (c *securityServiceClient) UpdateSecurity(ctx *gofr.Context, payload *pb.UpdateSecurityRequest) error {
+	_, err := c.client.UpdateSecurity(ctx, payload)
 	if err != nil {
 		return fmt.Errorf("failed rpc /security-service/UpdateSecurity, %s", err.Error())
 	}
