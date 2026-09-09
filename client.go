@@ -31,8 +31,9 @@ type SecurityServiceClient interface {
 	UpdateSecurityVolume(ctx *gofr.Context, id int32, volume int64) error
 	UpdateSecurityFreeFloatShares(ctx *gofr.Context, id int32, freeFloatShares int64) error
 	CreateOrUpdateSecurityStat(ctx *gofr.Context, payload *pb.CreateOrUpdateSecurityStatRequest) error
-	GetIndices(ctx *gofr.Context) ([]*pb.Index, error)
-	UpsertIndex(ctx *gofr.Context, name string, securityIDs []int32) error
+	GetIndices(ctx *gofr.Context, date time.Time) ([]*pb.Index, error)
+	UpsertIndex(ctx *gofr.Context, payload *pb.UpsertIndexRequest) error
+	UpsertIndexStat(ctx *gofr.Context, payload *pb.UpsertIndexStatRequest) error
 	GetMarketDataJobs(ctx *gofr.Context, status string) ([]*pb.MarketDataJob, error)
 	UpdateMarketDataJobStatus(ctx *gofr.Context, id int32, status string, logs any) error
 
@@ -181,8 +182,8 @@ func (c *securityServiceClient) CreateOrUpdateSecurityStat(ctx *gofr.Context, pa
 	return nil
 }
 
-func (c *securityServiceClient) GetIndices(ctx *gofr.Context) ([]*pb.Index, error) {
-	resp, err := c.client.GetIndices(ctx, &pb.GetIndicesRequest{})
+func (c *securityServiceClient) GetIndices(ctx *gofr.Context, date time.Time) ([]*pb.Index, error) {
+	resp, err := c.client.GetIndices(ctx, &pb.GetIndicesRequest{Date: date.Format(time.DateOnly)})
 	if err != nil {
 		return nil, fmt.Errorf("failed rpc /security-service/GetIndices, %s", err.Error())
 	}
@@ -190,10 +191,19 @@ func (c *securityServiceClient) GetIndices(ctx *gofr.Context) ([]*pb.Index, erro
 	return resp.Indices, nil
 }
 
-func (c *securityServiceClient) UpsertIndex(ctx *gofr.Context, name string, securityIDs []int32) error {
-	_, err := c.client.UpsertIndex(ctx, &pb.UpsertIndexRequest{Name: name, SecurityIds: securityIDs})
+func (c *securityServiceClient) UpsertIndex(ctx *gofr.Context, payload *pb.UpsertIndexRequest) error {
+	_, err := c.client.UpsertIndex(ctx, payload)
 	if err != nil {
 		return fmt.Errorf("failed rpc /security-service/UpsertIndex, %s", err.Error())
+	}
+
+	return nil
+}
+
+func (c *securityServiceClient) UpsertIndexStat(ctx *gofr.Context, payload *pb.UpsertIndexStatRequest) error {
+	_, err := c.client.UpsertIndexStat(ctx, payload)
+	if err != nil {
+		return fmt.Errorf("failed rpc /security-service/UpsertIndexStat, %s", err.Error())
 	}
 
 	return nil
