@@ -27,8 +27,8 @@ type SecurityServiceClient interface {
 	GetMarketDays(ctx *gofr.Context, startDate, endDate time.Time) ([]time.Time, error)
 	GetMetrics(ctx *gofr.Context) ([]*pb.Metric, error)
 	GetSecurities(ctx *gofr.Context, date time.Time) ([]*pb.Security, error)
-	UpdateSecurity(ctx *gofr.Context, payload *pb.UpdateSecurityRequest) error
-	CreateOrUpdateSecurityStat(ctx *gofr.Context, payload *pb.CreateOrUpdateSecurityStatRequest) error
+	UpsertSecurity(ctx *gofr.Context, payload *pb.UpsertSecurityRequest) error
+	UpsertSecurityStat(ctx *gofr.Context, payload *pb.UpsertSecurityStatRequest) error
 	GetIndices(ctx *gofr.Context, date time.Time) ([]*pb.Index, error)
 	UpsertIndex(ctx *gofr.Context, payload *pb.UpsertIndexRequest) error
 	UpsertIndexStat(ctx *gofr.Context, payload *pb.UpsertIndexStatRequest) error
@@ -145,18 +145,18 @@ func (c *securityServiceClient) GetSecurities(ctx *gofr.Context, date time.Time)
 	return resp.Securities, nil
 }
 
-func (c *securityServiceClient) UpdateSecurity(ctx *gofr.Context, payload *pb.UpdateSecurityRequest) error {
-	_, err := c.client.UpdateSecurity(ctx, payload)
+func (c *securityServiceClient) UpsertSecurity(ctx *gofr.Context, payload *pb.UpsertSecurityRequest) error {
+	_, err := c.client.UpsertSecurity(ctx, payload)
 	if err != nil {
-		return fmt.Errorf("failed rpc /security-service/UpdateSecurity, %s", err.Error())
+		return fmt.Errorf("failed rpc /security-service/UpsertSecurity, %s", err.Error())
 	}
 
 	return nil
 }
 
-func (c *securityServiceClient) CreateOrUpdateSecurityStat(ctx *gofr.Context, payload *pb.CreateOrUpdateSecurityStatRequest) error {
-	if _, err := c.client.CreateOrUpdateSecurityStat(ctx, payload); err != nil {
-		return fmt.Errorf("failed rpc /security-service/CreateOrUpdateSecurityStat, %s", err.Error())
+func (c *securityServiceClient) UpsertSecurityStat(ctx *gofr.Context, payload *pb.UpsertSecurityStatRequest) error {
+	if _, err := c.client.UpsertSecurityStat(ctx, payload); err != nil {
+		return fmt.Errorf("failed rpc /security-service/UpsertSecurityStatRequest, %s", err.Error())
 	}
 
 	return nil
