@@ -19,14 +19,19 @@ import (
 )
 
 const (
-	SecuritiesCacheKey = "security-service:client-cache:securities:date:%s"
-	MetricsCacheKey    = "security-service:client-cache:metrics"
+	MetricsCacheKey                  = "security-service:client-cache:metrics"
+	SecuritiesCacheKey               = "security-service:client-cache:securities"
+	SecuritiesHistoricalDataCacheKey = "security-service:client-cache:securities:%d:historical-data"
+
+	ClientCacheTTL         = 24 * time.Hour
+	HistoricalDataCacheTTL = 30 * 24 * time.Hour
 )
 
 type SecurityServiceClient interface {
 	GetMarketDays(ctx *gofr.Context, startDate, endDate time.Time) ([]time.Time, error)
 	GetMetrics(ctx *gofr.Context) ([]*pb.Metric, error)
-	GetSecurities(ctx *gofr.Context, date time.Time) ([]*pb.Security, error)
+	GetSecurities(ctx *gofr.Context) ([]*pb.Security, error)
+	GetHistoricalData(ctx *gofr.Context, securityID int32) ([]*pb.MarketData, error)
 	UpsertSecurity(ctx *gofr.Context, payload *pb.UpsertSecurityRequest) error
 	UpsertSecurityStat(ctx *gofr.Context, payload *pb.UpsertSecurityStatRequest) error
 	GetIndices(ctx *gofr.Context, date time.Time) ([]*pb.Index, error)
@@ -108,7 +113,7 @@ func (c *securityServiceClient) GetMetrics(ctx *gofr.Context) ([]*pb.Metric, err
 
 	bytes, err = googleproto.Marshal(resp)
 	if err == nil {
-		if err = c.cache.Set(ctx, MetricsCacheKey, bytes, 30*24*time.Hour).Err(); err != nil {
+		if err = c.cache.Set(ctx, MetricsCacheKey, bytes, ClientCacheTTL).Err(); err != nil {
 			ctx.Logger.Warnf("failed to client cache, key: %s, err: %s", MetricsCacheKey, err.Error())
 		}
 	}
@@ -116,10 +121,8 @@ func (c *securityServiceClient) GetMetrics(ctx *gofr.Context) ([]*pb.Metric, err
 	return resp.Metrics, nil
 }
 
-func (c *securityServiceClient) GetSecurities(ctx *gofr.Context, date time.Time) ([]*pb.Security, error) {
-	key := fmt.Sprintf(SecuritiesCacheKey, date.Format(time.DateOnly))
-
-	bytes, err := c.cache.Get(ctx, key).Bytes()
+func (c *securityServiceClient) GetSecurities(ctx *gofr.Context) ([]*pb.Security, error) {
+	bytes, err := c.cache.Get(ctx, SecuritiesCacheKey).Bytes()
 	if err == nil {
 		var result pb.GetSecuritiesResponse
 
@@ -128,21 +131,50 @@ func (c *securityServiceClient) GetSecurities(ctx *gofr.Context, date time.Time)
 		}
 	}
 
-	ctx.Logger.Warnf("client cache miss, key: %s, err: %s", key, err.Error())
+	ctx.Logger.Warnf("client cache miss, key: %s, err: %s", SecuritiesCacheKey, err.Error())
 
-	resp, err := c.client.GetSecurities(ctx, &pb.GetSecuritiesRequest{Date: date.Format(time.DateOnly)})
+	resp, err := c.client.GetSecurities(ctx, &pb.GetSecuritiesRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("failed rpc /security-service/GetSecurities, %s", err.Error())
 	}
 
 	bytes, err = googleproto.Marshal(resp)
 	if err == nil {
-		if err = c.cache.Set(ctx, key, bytes, 30*24*time.Hour).Err(); err != nil {
-			ctx.Logger.Warnf("failed to client cache, key: %s, err: %s", key, err.Error())
+		if err = c.cache.Set(ctx, SecuritiesCacheKey, bytes, ClientCacheTTL).Err(); err != nil {
+			ctx.Logger.Warnf("failed to client cache, key: %s, err: %s", SecuritiesCacheKey, err.Error())
 		}
 	}
 
 	return resp.Securities, nil
+}
+
+func (c *securityServiceClient) GetHistoricalData(ctx *gofr.Context, securityID int32) ([]*pb.MarketData, error) {
+	key := fmt.Sprintf(SecuritiesHistoricalDataCacheKey, securityID)
+
+	bytes, err := c.cache.Get(ctx, key).Bytes()
+	if err == nil {
+		var result pb.GetHistoricalDataResponse
+
+		if err = googleproto.Unmarshal(bytes, &result); err == nil {
+			return result.GetMarketData(), nil
+		}
+	}
+
+	ctx.Logger.Warnf("client cache miss, key: %s, err: %s", key, err.Error())
+
+	resp, err := c.client.GetHistoricalData(ctx, &pb.GetHistoricalDataRequest{SecurityId: securityID})
+	if err != nil {
+		return nil, fmt.Errorf("failed rpc /security-service/GetHistoricalData, %s", err.Error())
+	}
+
+	bytes, err = googleproto.Marshal(resp)
+	if err == nil {
+		if err = c.cache.Set(ctx, key, bytes, HistoricalDataCacheTTL).Err(); err != nil {
+			ctx.Logger.Warnf("failed to client cache, key: %s, err: %s", key, err.Error())
+		}
+	}
+
+	return resp.MarketData, nil
 }
 
 func (c *securityServiceClient) UpsertSecurity(ctx *gofr.Context, payload *pb.UpsertSecurityRequest) error {
