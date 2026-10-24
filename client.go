@@ -23,8 +23,7 @@ const (
 	SecuritiesCacheKey               = "security-service:client-cache:securities"
 	SecuritiesHistoricalDataCacheKey = "security-service:client-cache:securities:%d:historical-data"
 
-	ClientCacheTTL         = 24 * time.Hour
-	HistoricalDataCacheTTL = 30 * 24 * time.Hour
+	CacheTTL = 24 * time.Hour
 )
 
 type SecurityServiceClient interface {
@@ -113,7 +112,7 @@ func (c *securityServiceClient) GetMetrics(ctx *gofr.Context) ([]*pb.Metric, err
 
 	bytes, err = googleproto.Marshal(resp)
 	if err == nil {
-		if err = c.cache.Set(ctx, MetricsCacheKey, bytes, ClientCacheTTL).Err(); err != nil {
+		if err = c.cache.Set(ctx, MetricsCacheKey, bytes, CacheTTL).Err(); err != nil {
 			ctx.Logger.Warnf("failed to client cache, key: %s, err: %s", MetricsCacheKey, err.Error())
 		}
 	}
@@ -140,7 +139,7 @@ func (c *securityServiceClient) GetSecurities(ctx *gofr.Context) ([]*pb.Security
 
 	bytes, err = googleproto.Marshal(resp)
 	if err == nil {
-		if err = c.cache.Set(ctx, SecuritiesCacheKey, bytes, ClientCacheTTL).Err(); err != nil {
+		if err = c.cache.Set(ctx, SecuritiesCacheKey, bytes, CacheTTL).Err(); err != nil {
 			ctx.Logger.Warnf("failed to client cache, key: %s, err: %s", SecuritiesCacheKey, err.Error())
 		}
 	}
@@ -169,7 +168,7 @@ func (c *securityServiceClient) GetHistoricalData(ctx *gofr.Context, securityID 
 
 	bytes, err = googleproto.Marshal(resp)
 	if err == nil {
-		if err = c.cache.Set(ctx, key, bytes, HistoricalDataCacheTTL).Err(); err != nil {
+		if err = c.cache.Set(ctx, key, bytes, CacheTTL).Err(); err != nil {
 			ctx.Logger.Warnf("failed to client cache, key: %s, err: %s", key, err.Error())
 		}
 	}
