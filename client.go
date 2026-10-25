@@ -33,7 +33,7 @@ type SecurityServiceClient interface {
 	GetHistoricalData(ctx *gofr.Context, securityID int32) ([]*pb.MarketData, error)
 	UpsertSecurity(ctx *gofr.Context, payload *pb.UpsertSecurityRequest) error
 	UpsertSecurityStat(ctx *gofr.Context, payload *pb.UpsertSecurityStatRequest) error
-	GetIndices(ctx *gofr.Context, date time.Time) ([]*pb.Index, error)
+	GetIndices(ctx *gofr.Context) ([]*pb.Index, error)
 	UpsertIndex(ctx *gofr.Context, payload *pb.UpsertIndexRequest) error
 	UpsertIndexStat(ctx *gofr.Context, payload *pb.UpsertIndexStatRequest) error
 	GetMarketDataJobs(ctx *gofr.Context, status string) ([]*pb.MarketDataJob, error)
@@ -193,8 +193,8 @@ func (c *securityServiceClient) UpsertSecurityStat(ctx *gofr.Context, payload *p
 	return nil
 }
 
-func (c *securityServiceClient) GetIndices(ctx *gofr.Context, date time.Time) ([]*pb.Index, error) {
-	resp, err := c.client.GetIndices(ctx, &pb.GetIndicesRequest{Date: date.Format(time.DateOnly)})
+func (c *securityServiceClient) GetIndices(ctx *gofr.Context) ([]*pb.Index, error) {
+	resp, err := c.client.GetIndices(ctx, &pb.GetIndicesRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("failed rpc /security-service/GetIndices, %s", err.Error())
 	}
