@@ -27,7 +27,7 @@ const (
 )
 
 type SecurityServiceClient interface {
-	GetMarketDays(ctx *gofr.Context, startDate, endDate time.Time) ([]time.Time, error)
+	GetMarketDays(ctx *gofr.Context, exchange string, startDate, endDate time.Time) ([]time.Time, error)
 	GetMetrics(ctx *gofr.Context) ([]*pb.Metric, error)
 	GetSecurities(ctx *gofr.Context) ([]*pb.Security, error)
 	GetHistoricalData(ctx *gofr.Context, securityID int32) ([]*pb.MarketData, error)
@@ -38,6 +38,7 @@ type SecurityServiceClient interface {
 	UpsertIndexStat(ctx *gofr.Context, payload *pb.UpsertIndexStatRequest) error
 	GetMarketDataJobs(ctx *gofr.Context, status string) ([]*pb.MarketDataJob, error)
 	UpdateMarketDataJobStatus(ctx *gofr.Context, id int32, status string, logs any) error
+	UpsertExchange(ctx *gofr.Context, payload *pb.UpsertExchangeRequest) error
 
 	Close() error
 }
@@ -73,8 +74,9 @@ func NewSecurityServiceClient(config config.Config, logger logging.Logger) (Secu
 	}, nil
 }
 
-func (c *securityServiceClient) GetMarketDays(ctx *gofr.Context, startDate, endDate time.Time) ([]time.Time, error) {
+func (c *securityServiceClient) GetMarketDays(ctx *gofr.Context, exchange string, startDate, endDate time.Time) ([]time.Time, error) {
 	resp, err := c.client.GetMarketDays(ctx, &pb.GetMarketDaysRequest{
+		Exchange:  exchange,
 		StartDate: startDate.Format(time.DateOnly),
 		EndDate:   endDate.Format(time.DateOnly),
 	})
@@ -238,6 +240,15 @@ func (c *securityServiceClient) UpdateMarketDataJobStatus(ctx *gofr.Context, id 
 	_, err = c.client.UpdateMarketDataJob(ctx, &pb.UpdateMarketDataJobRequest{Id: id, Status: status, Logs: logBytes})
 	if err != nil {
 		return fmt.Errorf("failed rpc /security-service/UpdateMarketDataJob, %s", err.Error())
+	}
+
+	return nil
+}
+
+func (c *securityServiceClient) UpsertExchange(ctx *gofr.Context, payload *pb.UpsertExchangeRequest) error {
+	_, err := c.client.UpsertExchange(ctx, payload)
+	if err != nil {
+		return fmt.Errorf("failed rpc /security-service/UpsertExchange, %s", err.Error())
 	}
 
 	return nil

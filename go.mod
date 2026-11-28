@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/redis/go-redis/v9 v9.21.0
-	github.com/stratifyr/security-service-proto v0.0.0-20261125181726-4ec125b4a98c
+	github.com/stratifyr/security-service-proto v0.0.0-20261128093758-acab0f467438
 	go.opentelemetry.io/otel/trace v1.44.0
 	gofr.dev v1.59.0
 	google.golang.org/grpc v1.83.0
